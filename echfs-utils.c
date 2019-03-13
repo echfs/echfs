@@ -269,6 +269,10 @@ next:
             last = 1;
             break;
         }
+        if (i == FILENAME_LEN) {
+            fprintf(stderr, "fatal error: corrupted image");
+            abort();
+        }
         name[i++] = *path;
     }
     name[i] = 0;
