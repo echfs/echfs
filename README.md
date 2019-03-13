@@ -5,3 +5,16 @@ most UNIX and POSIX-style features while being extremely simple to implement.
 Ideal for hobbyist OS developers who want a simple filesystem and don't want
 to deal with old crufty FAT (which isn't UNIX/POSIX compliant either),
 or complex filesystems such as ext2/3/4.
+
+Keep in mind that this is still a work in progress, and the specification
+might change. I'll try to keep everything backwards compatible (in a clean way)
+when I'll add new features or make modifications to the filesystem.
+
+You can find the specification in the spec.txt file, and a utility to manipulate
+the filesystem from another OS (no, we're not use FUSE, portability is important).
+You can compile and install the `echfs-utils` program using `make` the usual way.
+
+```sh
+make
+sudo make install
+```
