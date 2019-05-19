@@ -654,6 +654,7 @@ int main(int argc, char **argv) {
         if (!strcmp(argv[2], "mkdir")) mkdir_cmd(argc, argv);
         else if (!strcmp(argv[2], "ls")) ls_cmd(argc, argv);
         else if (!strcmp(argv[2], "format")) format_pass2();
+        else if (!strcmp(argv[2], "quick-format")) format_pass2();
         else if (!strcmp(argv[2], "import")) import_cmd(argc, argv);
         else if (!strcmp(argv[2], "export")) export_cmd(argc, argv);
 
