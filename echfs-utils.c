@@ -498,7 +498,7 @@ static void ls_cmd(int argc, char **argv) {
     return;
 }
 
-static void format_pass1(int argc, char **argv) {
+static void format_pass1(int argc, char **argv, int quick) {
 
     if (argc <= 3) {
         fprintf(stderr, "%s: error: unspecified block size.\n", argv[0]);
@@ -534,22 +534,24 @@ static void format_pass1(int argc, char **argv) {
     // block size
     wr_qword(28, bytesperblock);
 
-    fseek(image, (RESERVED_BLOCKS * bytesperblock), SEEK_SET);
-    if (verbose) fprintf(stdout, "zeroing");
+    if (!quick) {
+        fseek(image, (RESERVED_BLOCKS * bytesperblock), SEEK_SET);
+        if (verbose) fprintf(stdout, "zeroing");
 
-    // zero out the rest of the image
-    uint8_t *zeroblock = calloc(bytesperblock, 1);
-    if (!zeroblock) {
-        perror("calloc failure");
-        abort();
-    }
-    for (uint64_t i = (RESERVED_BLOCKS * bytesperblock); i < imgsize; i += bytesperblock) {
-        fwrite(zeroblock, bytesperblock, 1, image);
-        if (verbose) fputc('.', stdout);
-    }
-    free(zeroblock);
+        // zero out the rest of the image
+        uint8_t *zeroblock = calloc(bytesperblock, 1);
+        if (!zeroblock) {
+            perror("calloc failure");
+            abort();
+        }
+        for (uint64_t i = (RESERVED_BLOCKS * bytesperblock); i < imgsize; i += bytesperblock) {
+            fwrite(zeroblock, bytesperblock, 1, image);
+            if (verbose) fputc('.', stdout);
+        }
+        free(zeroblock);
 
-    if (verbose) fputc('\n', stdout);
+        if (verbose) fputc('\n', stdout);
+    }
 
     return;
 
@@ -592,7 +594,8 @@ int main(int argc, char **argv) {
     imgsize = (uint64_t)ftell(image);
     rewind(image);
 
-    if ((argc > 2) && (!strcmp(argv[2], "format"))) format_pass1(argc, argv);
+    if ((argc > 2) && (!strcmp(argv[2], "format"))) format_pass1(argc, argv, 0);
+    if ((argc > 2) && (!strcmp(argv[2], "quick-format"))) format_pass1(argc, argv, 1);
 
     char signature[8] = {0};
     fseek(image, 4, SEEK_SET);
