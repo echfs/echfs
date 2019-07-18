@@ -7,11 +7,16 @@ CFLAGS=-O3 -Wall -Wextra -pipe
 echfs-utils:
 	$(CC) $(CFLAGS) echfs-utils.c -o echfs-utils
 
-all: echfs-utils
+echfs-fuse:
+	$(CC) fuse.c $(CFLAGS) $(shell pkg-config fuse --cflags --libs) -o echfs-fuse
+
+all: echfs-utils echfs-fuse
 
 clean:
 	rm -f echfs-utils
+	rm -f echfs-fuse
 
 install:
 	mkdir -p $(PREFIX)/bin
 	cp echfs-utils $(PREFIX)/bin
+	cp echfs-fuse $(PREFIX)/bin
