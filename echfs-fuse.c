@@ -91,7 +91,7 @@ static struct echfs {
 
 static struct echfs_handle_t handles[MAX_HANDLES];
 
-static char *strchrnul(const char *s, char c) {
+static char *internal_strchrnul(const char *s, char c) {
     while (*s) {
         if ((*s++) == c)
             break;
@@ -447,7 +447,7 @@ static struct path_result_t *resolve_path(const char *path) {
     path_result->target.payload = ROOT_ID;
     do {
         const char *seg = path;
-        path = strchrnul(path, '/');
+        path = internal_strchrnul(path, '/');
         size_t seg_length = path - seg;
         if (seg[seg_length - 1] == '/')
             seg_length--;

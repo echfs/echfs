@@ -12,9 +12,10 @@ when I'll add new features or make modifications to the filesystem.
 
 In this repo you can find the full specification in the `spec.txt` file,
 and a utility to manipulate the filesystem (`echfs-utils`).
-No, we're not using FUSE, and we're not planning on implementing FUSE support,
-portability is important.
 You can compile and install the `echfs-utils` program using `make` the usual way.
+
+A FUSE implementation of a filesystem driver named `echfs-fuse` is also provided
+(thanks to Geertiebear).
 
 ```
 make
