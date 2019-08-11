@@ -35,10 +35,13 @@ Directory entry structure:
                                                    0xFFFFFFFF_FFFFFFFF stands for root,
                                                    0xFFFFFFFF_FFFFFFFE stands for deleted entry)
     byte                object type (0=file, 1=dir, rest to be implemented)
-    times 218 db        zero-terminated ascii string containing the name of the object. max. 217 chars+0
-    byte                permissions
+    times 201 db        zero-terminated ascii string containing the name of the object. max. 200 chars+0
+    qword               64-bit unix atime
+    qword               64-bit unix mtime
+    byte                permissions (-------r)
+    byte                permissions (wxrwxrwx)
     word                owner ID
     word                group ID
-    qword               64-bit unix time: last modification date
+    qword               64-bit unix ctime
     qword               starting block (if file), directory ID (if directory)
     qword               file size in bytes (0 if directory, shouldn't matter anyways)
