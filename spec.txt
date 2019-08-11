@@ -38,8 +38,7 @@ Directory entry structure:
     times 201 db        zero-terminated ascii string containing the name of the object. max. 200 chars+0
     qword               64-bit unix atime
     qword               64-bit unix mtime
-    byte                permissions (-------r)
-    byte                permissions (wxrwxrwx)
+    word                permissions (-------rwxrwxrwx)
     word                owner ID
     word                group ID
     qword               64-bit unix ctime

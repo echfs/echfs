@@ -15,7 +15,7 @@
 #define BYTES_PER_BLOCK         (SECTORS_PER_BLOCK * BYTES_PER_SECT)
 #define ENTRIES_PER_SECT        2
 #define ENTRIES_PER_BLOCK       (SECTORS_PER_BLOCK * ENTRIES_PER_SECT)
-#define FILENAME_LEN            218
+#define FILENAME_LEN            201
 #define RESERVED_BLOCKS         16
 #define FILE_TYPE               0
 #define DIRECTORY_TYPE          1
@@ -27,10 +27,12 @@ typedef struct {
     uint64_t parent_id;
     uint8_t type;
     char name[FILENAME_LEN];
-    uint8_t perms;
+    uint64_t atime;
+    uint64_t mtime;
+    uint16_t perms;
     uint16_t owner;
     uint16_t group;
-    uint64_t time;
+    uint64_t ctime;
     uint64_t payload;
     uint64_t size;
 } __attribute__((packed)) entry_t;
@@ -350,7 +352,11 @@ static void mkdir_cmd(int argc, char **argv) {
     entry.payload = get_free_id();
     if (verbose) fprintf(stdout, "new directory's ID: %" PRIu64 "\n", entry.payload);
     if (verbose) fprintf(stdout, "writing to entry #%" PRIu64 "\n", i);
-    entry.time = (uint64_t)time(NULL);
+    uint64_t tm = (uint64_t)time(NULL);
+    entry.ctime = tm;
+    entry.atime = tm;
+    entry.mtime = tm;
+    entry.perms = 0b111111111; /* TODO: set appropriate permissions somehow */
 
     wr_entry(i, &entry);
 
@@ -420,7 +426,10 @@ subdir:
     entry.payload = import_chain(source);
     fseek(source, 0L, SEEK_END);
     entry.size = (uint64_t)ftell(source);
-    entry.time = (uint64_t)time(NULL);
+    entry.ctime = s.st_ctim.tv_sec;
+    entry.atime = s.st_atim.tv_sec;
+    entry.mtime = s.st_mtim.tv_sec;
+    entry.perms = (uint16_t)(s.st_mode & ((1 << 9)-1));
 
     // find empty entry
     uint64_t loc = (dirstart * bytesperblock);
