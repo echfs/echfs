@@ -356,7 +356,7 @@ static void mkdir_cmd(int argc, char **argv) {
     entry.ctime = tm;
     entry.atime = tm;
     entry.mtime = tm;
-    entry.perms = 0b111111111; /* TODO: set appropriate permissions somehow */
+    entry.perms = 0644; /* TODO: set appropriate permissions somehow */
 
     wr_entry(i, &entry);
 
