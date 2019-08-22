@@ -4,7 +4,7 @@ CFLAGS=-O3 -Wall -Wextra -pipe
 
 .PHONY: all clean install
 
-all: echfs-utils echfs-fuse
+all: echfs-utils
 
 echfs-utils:
 	$(CC) $(CFLAGS) echfs-utils.c -o echfs-utils
@@ -19,4 +19,7 @@ clean:
 install:
 	mkdir -p $(PREFIX)/bin
 	cp echfs-utils $(PREFIX)/bin
+
+install-fuse:
+	mkdir -p $(PREFIX)/bin
 	cp echfs-fuse $(PREFIX)/bin
