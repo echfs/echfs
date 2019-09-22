@@ -426,9 +426,17 @@ subdir:
     entry.payload = import_chain(source);
     fseek(source, 0L, SEEK_END);
     entry.size = (uint64_t)ftell(source);
+
+#ifdef __APPLE__
+    entry.ctime = s.st_ctimespec.tv_sec;
+    entry.atime = s.st_ctimespec.tv_sec;
+    entry.mtime = s.st_mtimespec.tv_sec;
+#else
     entry.ctime = s.st_ctim.tv_sec;
     entry.atime = s.st_atim.tv_sec;
     entry.mtime = s.st_mtim.tv_sec;
+#endif
+
     entry.perms = (uint16_t)(s.st_mode & ((1 << 9)-1));
 
     // find empty entry
