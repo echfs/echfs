@@ -15,7 +15,7 @@
 #define ROOT_ID                 0xffffffffffffffff
 #define BYTES_PER_SECT          512
 #define ENTRIES_PER_SECT        2
-#define FILENAME_LEN            218
+#define FILENAME_LEN            201
 #define FILE_TYPE               0
 #define DIRECTORY_TYPE          1
 #define DELETED_ENTRY           0xfffffffffffffffe
@@ -30,10 +30,12 @@ struct entry_t {
     uint64_t parent_id;
     uint8_t type;
     char name[FILENAME_LEN];
-    uint8_t perms;
+    uint64_t atime;
+    uint64_t mtime;
+    uint16_t perms;
     uint16_t owner;
     uint16_t group;
-    uint64_t time;
+    uint64_t ctime;
     uint64_t payload;
     uint64_t size;
 }__attribute__((packed));
@@ -145,12 +147,20 @@ static inline uint64_t get_time() {
     return time.tv_sec;
 }
 
-static int update_time(struct path_result_t *path_res) {
+static int update_ctime(struct path_result_t *path_res) {
     uint64_t time = get_time();
-    path_res->target.time = time;
+    path_res->target.ctime = time;
     wr_entry(&path_res->target, path_res->target_entry);
     return 0;
 }
+
+static int update_mtime(struct path_result_t *path_res) {
+    uint64_t time = get_time();
+    path_res->target.mtime = time;
+    wr_entry(&path_res->target, path_res->target_entry);
+    return 0;
+}
+
 static inline uint64_t hash_str(const char *str) {
     unsigned long hash = 5381;
     int c;
@@ -552,11 +562,11 @@ static int echfs_fgetattr(const char *path, struct stat *stat,
     stat->st_size = path_result->target.size;
     stat->st_blksize = 512;
     stat->st_blocks = (stat->st_size + 512 - 1) / 512;
-    stat->st_atim.tv_sec = path_result->target.time;
+    stat->st_atim.tv_sec = path_result->target.atime;
     stat->st_atim.tv_nsec = 0;
-    stat->st_mtim.tv_sec = path_result->target.time;
+    stat->st_mtim.tv_sec = path_result->target.mtime;
     stat->st_mtim.tv_nsec = 0;
-    stat->st_ctim.tv_sec = path_result->target.time;
+    stat->st_ctim.tv_sec = path_result->target.ctime;
     stat->st_ctim.tv_nsec = 0;
 
     stat->st_mode = 0;
@@ -589,11 +599,11 @@ static int echfs_getattr(const char *path, struct stat *stat) {
     stat->st_size = path_result->target.size;
     stat->st_blksize = 512;
     stat->st_blocks = (stat->st_size + 512 - 1) / 512;
-    stat->st_atim.tv_sec = path_result->target.time;
+    stat->st_atim.tv_sec = path_result->target.atime;
     stat->st_atim.tv_nsec = 0;
-    stat->st_mtim.tv_sec = path_result->target.time;
+    stat->st_mtim.tv_sec = path_result->target.mtime;
     stat->st_mtim.tv_nsec = 0;
-    stat->st_ctim.tv_sec = path_result->target.time;
+    stat->st_ctim.tv_sec = path_result->target.ctime;
     stat->st_ctim.tv_nsec = 0;
 
     stat->st_mode = 0;
@@ -732,7 +742,7 @@ static int echfs_write(const char *path, const char *buf, size_t to_write,
     if (handles[file_info->fh].path_res->type != FILE_TYPE) return -EISDIR;
 
     struct echfs_handle_t *handle = &handles[file_info->fh];
-    int ret = update_time(handle->path_res);
+    int ret = update_mtime(handle->path_res);
     if (ret) return ret;
 
     if ((offset + to_write) > handle->path_res->target.size) {
@@ -751,7 +761,7 @@ static int echfs_write(const char *path, const char *buf, size_t to_write,
         if (chunk > echfs.bytes_per_block - buf_offset)
             chunk = echfs.bytes_per_block - buf_offset;
 
-        fseek(echfs.image, loc, SEEK_SET);
+        fseek(echfs.image, loc + buf_offset, SEEK_SET);
         ret = fwrite(buf + progress, 1, chunk, echfs.image);
         if (ret != chunk)
             return -EIO;
@@ -788,7 +798,7 @@ static int echfs_create(const char *path, mode_t mode,
     strcpy(entry.name, path_res->name);
     entry.perms = mode;
     entry.payload = END_OF_CHAIN;
-    entry.time = get_time();
+    entry.ctime = entry.atime = entry.mtime = get_time();
 
     uint64_t new_entry = find_free_entry();
     if (new_entry == SEARCH_FAILURE) return -EIO;
@@ -848,7 +858,7 @@ static int echfs_mkdir(const char *path, mode_t mode) {
     strcpy(entry.name, path_res->name);
     entry.perms = mode;
     entry.payload = new_dir_id;
-    entry.time = get_time();
+    entry.atime = entry.mtime = entry.ctime = get_time();
 
     wr_entry(&entry, new_entry);
 
@@ -903,10 +913,13 @@ static int echfs_rmdir(const char *path) {
     return 0;
 }
 
-static int echfs_utime(const char *path, struct utimbuf *time) {
-    echfs_debug("echfs_utime() on %s\n", path);
+static int echfs_utimens(const char *path, const struct timespec tv[2]) {
+    echfs_debug("echfs_utimens() on %s\n", path);
     struct path_result_t *path_res = resolve_path(path);
-    path_res->target.time = time->modtime;
+
+    path_res->target.atime = tv[0].tv_sec;
+    path_res->target.mtime = tv[1].tv_sec;
+
     wr_entry(&path_res->target, path_res->target_entry);
     return 0;
 }
@@ -915,6 +928,7 @@ static int echfs_utime(const char *path, struct utimbuf *time) {
 static int echfs_truncate(const char *path, off_t size) {
     echfs_debug("echfs_truncate() on %s, size %lu\n", path, size);
     struct path_result_t *path_res = resolve_path(path);
+    update_ctime(path_res);
     path_res->target.size = size;
     wr_entry(&path_res->target, path_res->target_entry);
     return 0;
@@ -929,6 +943,7 @@ static int echfs_ftruncate(const char *path, off_t size,
 
     struct echfs_handle_t *handle = &handles[file_info->fh];
     handle->path_res->target.size = size;
+    update_ctime(hande->path_res);
     wr_entry(&handle->path_res->target,
             handle->path_res->target_entry);
     return 0;
@@ -941,8 +956,6 @@ static int echfs_rename(const char *path, const char *new) {
         return -ENOENT;
 
     struct path_result_t *new_res = resolve_path(new);
-    if (!new_res->failure)
-        return -EEXIST;
 
     const char *new_name = strrchr(new, '/');
     if (!new_name)
@@ -973,7 +986,7 @@ static struct fuse_operations operations = {
     .write = echfs_write,
     .create = echfs_create,
     .unlink = echfs_unlink,
-    .utime = echfs_utime,
+    .utimens = echfs_utimens,
     .truncate = echfs_truncate,
     .ftruncate = echfs_ftruncate,
     .mkdir = echfs_mkdir,
