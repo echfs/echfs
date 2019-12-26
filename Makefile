@@ -4,12 +4,8 @@ CFLAGS=-O3 -Wall -Wextra -pipe
 
 .PHONY: all clean install
 
-all: echfs-utils
-
-echfs-utils:
+all:
 	$(CC) $(CFLAGS) echfs-utils.c -o echfs-utils
-
-echfs-fuse:
 	$(CC) $(CFLAGS) echfs-fuse.c $(shell pkg-config fuse --cflags --libs) -o echfs-fuse
 
 clean:
@@ -19,7 +15,4 @@ clean:
 install:
 	install -d $(PREFIX)/bin
 	install -s echfs-utils $(PREFIX)/bin
-
-install-fuse:
-	install -d $(PREFIX)/bin
 	install -s echfs-fuse $(PREFIX)/bin
