@@ -17,9 +17,9 @@ clean:
 	rm -f echfs-fuse
 
 install:
-	mkdir -p $(PREFIX)/bin
-	cp echfs-utils $(PREFIX)/bin
+	install -d $(PREFIX)/bin
+	install -s echfs-utils $(PREFIX)/bin
 
 install-fuse:
-	mkdir -p $(PREFIX)/bin
-	cp echfs-fuse $(PREFIX)/bin
+	install -d $(PREFIX)/bin
+	install -s echfs-fuse $(PREFIX)/bin
