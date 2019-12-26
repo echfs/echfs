@@ -943,7 +943,7 @@ static int echfs_ftruncate(const char *path, off_t size,
 
     struct echfs_handle_t *handle = &handles[file_info->fh];
     handle->path_res->target.size = size;
-    update_ctime(hande->path_res);
+    update_ctime(handle->path_res);
     wr_entry(&handle->path_res->target,
             handle->path_res->target_entry);
     return 0;
