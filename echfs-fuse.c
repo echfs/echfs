@@ -1,5 +1,6 @@
 #define FUSE_USE_VERSION 29
 
+#include "mbr.h"
 #include <fuse.h>
 #include <string.h>
 #include <stddef.h>
@@ -73,6 +74,8 @@ static struct echfs {
     char *mountpoint;
     struct fuse_chan *chan;
     struct fuse_session *session;
+    int mbr, partition;
+    uint64_t part_offset;
 
     FILE *image;
     uint64_t image_size;
@@ -115,9 +118,13 @@ static void cleanup_fuse() {
     fuse_remove_signal_handlers(echfs.session);
 }
 
+static inline void echfs_fseek(FILE *file, uint64_t loc, int mode) {
+    fseek(file, echfs.part_offset + loc, mode);
+}
+
 static inline uint16_t rd_word(long loc) {
     uint16_t x = 0;
-    fseek(echfs.image, loc, SEEK_SET);
+    echfs_fseek(echfs.image, loc, SEEK_SET);
     int ret = fread(&x, 2, 1, echfs.image);
     if (ret != 1)
         fprintf(stderr, "error reading word!\n");
@@ -126,7 +133,7 @@ static inline uint16_t rd_word(long loc) {
 
 static inline uint64_t rd_qword(long loc) {
     uint64_t x = 0;
-    fseek(echfs.image, loc, SEEK_SET);
+    echfs_fseek(echfs.image, loc, SEEK_SET);
     int ret = fread(&x, 8, 1, echfs.image);
     if (ret != 1)
         fprintf(stderr, "error reading qword!\n");
@@ -284,14 +291,20 @@ static void *echfs_init(struct fuse_conn_info *conn) {
         exit(1);
     }
 
-    echfs.fat_start = RESERVED_BLOCKS;
-    fseek(echfs.image, 0L, SEEK_END);
-    echfs.image_size = (uint64_t)ftell(echfs.image);
-    rewind(echfs.image);
+    if (echfs.mbr) {
+        struct mbr_part mbr = mbr_get_part(echfs.image, echfs.partition);
+        echfs.part_offset = mbr.first_sect * 512;
+        echfs.image_size = mbr.sect_count * 512;
+    } else {
+        echfs.part_offset = 0;
+        fseek(echfs.image, 0L, SEEK_END);
+        echfs.image_size = (uint64_t)ftell(echfs.image);
+        echfs_fseek(echfs.image, 0L, SEEK_SET);
+    }
     echfs_debug("echfs image size: %lu\n", echfs.image_size);
 
     char signature[8] = {0};
-    fseek(echfs.image, 4, SEEK_SET);
+    echfs_fseek(echfs.image, 4, SEEK_SET);
     int ret = fread(signature, 8, 1, echfs.image);
     if (ret != 1) {
         fprintf(stderr, "error reading signature!\n");
@@ -307,6 +320,7 @@ static void *echfs_init(struct fuse_conn_info *conn) {
         exit(1);
     }
 
+    echfs.fat_start = RESERVED_BLOCKS;
     echfs.bytes_per_block = rd_qword(28);
     echfs_debug("echfs block size: %lu\n", echfs.bytes_per_block);
     if (echfs.image_size % echfs.bytes_per_block) {
@@ -355,7 +369,7 @@ static void *echfs_init(struct fuse_conn_info *conn) {
         fclose(echfs.image);
         exit(1);
     }
-    fseek(echfs.image, echfs.dir_start * echfs.bytes_per_block, SEEK_SET);
+    echfs_fseek(echfs.image, echfs.dir_start * echfs.bytes_per_block, SEEK_SET);
     ret = fread(echfs.dir_table, sizeof(char), echfs.dir_size *
             echfs.bytes_per_block, echfs.image);
     if (ret != (echfs.dir_size * echfs.bytes_per_block)) {
@@ -374,7 +388,7 @@ static void *echfs_init(struct fuse_conn_info *conn) {
         free(echfs.dir_table);
         exit(1);
     }
-    fseek(echfs.image, echfs.fat_start * echfs.bytes_per_block, SEEK_SET);
+    echfs_fseek(echfs.image, echfs.fat_start * echfs.bytes_per_block, SEEK_SET);
     ret = fread(echfs.fat, sizeof(char), echfs.fat_size * echfs.bytes_per_block,
             echfs.image);
     if (ret != (echfs.fat_size * echfs.bytes_per_block)) {
@@ -392,12 +406,12 @@ static void *echfs_init(struct fuse_conn_info *conn) {
 static void echfs_destroy(void *data) {
     (void) data;
     fprintf(stderr, "cleaning up!\n");
-    fseek(echfs.image, echfs.dir_start * echfs.bytes_per_block, SEEK_SET);
+    echfs_fseek(echfs.image, echfs.dir_start * echfs.bytes_per_block, SEEK_SET);
     fwrite(echfs.dir_table, sizeof(char), echfs.dir_size * echfs.bytes_per_block,
             echfs.image);
     free(echfs.dir_table);
 
-    fseek(echfs.image, echfs.fat_start * echfs.bytes_per_block, SEEK_SET);
+    echfs_fseek(echfs.image, echfs.fat_start * echfs.bytes_per_block, SEEK_SET);
     fwrite(echfs.fat, sizeof(char), echfs.dir_size * echfs.bytes_per_block,
             echfs.image);
     free(echfs.fat);
@@ -686,7 +700,7 @@ static int echfs_read(const char *path, char *buf, size_t to_read,
         if (chunk > echfs.bytes_per_block - disk_offset)
             chunk = echfs.bytes_per_block - disk_offset;
 
-        fseek(echfs.image, loc + disk_offset, SEEK_SET);
+        echfs_fseek(echfs.image, loc + disk_offset, SEEK_SET);
         int ret = fread(buf + progress, 1, chunk, echfs.image);
         if (ret != chunk)
             return -EIO;
@@ -761,7 +775,7 @@ static int echfs_write(const char *path, const char *buf, size_t to_write,
         if (chunk > echfs.bytes_per_block - buf_offset)
             chunk = echfs.bytes_per_block - buf_offset;
 
-        fseek(echfs.image, loc + buf_offset, SEEK_SET);
+        echfs_fseek(echfs.image, loc + buf_offset, SEEK_SET);
         ret = fwrite(buf + progress, 1, chunk, echfs.image);
         if (ret != chunk)
             return -EIO;
@@ -997,6 +1011,8 @@ static struct fuse_operations operations = {
 static struct options {
     int show_help;
     int debug;
+    int mbr;
+    int partition;
 } options;
 
 #define OPTION(t, p)    \
@@ -1005,6 +1021,8 @@ static const struct fuse_opt option_spec[] = {
     OPTION("-h", show_help),
     OPTION("--help", show_help),
     OPTION("-d", debug),
+    OPTION("--mbr", mbr),
+    OPTION("-p %i", partition),
     FUSE_OPT_END
 };
 
@@ -1056,6 +1074,8 @@ int main(int argc, char **argv) {
     free(echfs.image_path);
     echfs.mountpoint = real_mountpoint;
     echfs.image_path = real_image_path;
+    echfs.mbr = options.mbr;
+    echfs.partition = options.partition;
 
     struct fuse_chan *chan = fuse_mount(echfs.mountpoint, &args);
     if (!chan) {
