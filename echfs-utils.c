@@ -64,8 +64,8 @@ static uint64_t dirstart;
 static uint64_t datastart;
 static uint64_t bytesperblock;
 
-static void echfs_fseek(FILE *file, uint64_t loc, int mode) {
-    fseek(file, loc + part_offset, mode);
+inline static int echfs_fseek(FILE *file, long loc, int mode) {
+    return fseek(file, loc + part_offset, mode);
 }
 
 static inline uint8_t rd_byte(uint64_t loc) {
