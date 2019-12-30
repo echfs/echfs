@@ -119,8 +119,8 @@ static void cleanup_fuse() {
     fuse_remove_signal_handlers(echfs.session);
 }
 
-static inline void echfs_fseek(FILE *file, uint64_t loc, int mode) {
-    fseek(file, echfs.part_offset + loc, mode);
+static inline int echfs_fseek(FILE *file, long loc, int mode) {
+    return fseek(file, echfs.part_offset + loc, mode);
 }
 
 static inline uint16_t rd_word(long loc) {
