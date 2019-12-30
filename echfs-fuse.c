@@ -50,7 +50,6 @@ struct path_result_t {
     int failure;
     int not_found;
     uint8_t type;
-    uint64_t handle_list[MAX_HANDLES];
     struct path_result_t *next;
 };
 
@@ -110,6 +109,8 @@ static void echfs_debug(const char *fmt, ...) {
     va_start(args, fmt);
     vfprintf(stdout, fmt, args);
     va_end(args);
+#else
+    (void)fmt;
 #endif
 }
 
@@ -168,6 +169,25 @@ static int update_mtime(struct path_result_t *path_res) {
     return 0;
 }
 
+static int detect_cycle(struct path_result_t* list) {
+#ifdef ECHFS_DEBUG
+    struct path_result_t *slow_p = list, *fast_p = list;
+    while (slow_p && fast_p && fast_p->next) {
+        slow_p = slow_p->next;
+        fast_p = fast_p->next->next;
+        if (slow_p == fast_p) {
+            echfs_debug("Found loop, slow_p is %s, fast_p is %s\n",
+                    slow_p->path, fast_p->path);
+            return 1;
+        }
+    }
+    return 0;
+#else
+    (void)list;
+    return 0;
+#endif
+}
+
 static inline uint64_t hash_str(const char *str) {
     unsigned long hash = 5381;
     int c;
@@ -199,6 +219,9 @@ static void rehash_path(const char *path, const char *new) {
             break;
         }
     }
+    element->next = NULL;
+    if(detect_cycle(echfs.path_cache.table[offset]))
+        echfs_debug("detected cycle in rehash_path\n");
 
     uint64_t new_hash = hash_str(element->path);
     uint64_t new_offset = new_hash % echfs.path_cache.size;
@@ -209,6 +232,8 @@ static void rehash_path(const char *path, const char *new) {
         for (; it->next; it = it->next);
         it->next = element;
     }
+    if(detect_cycle(echfs.path_cache.table[new_offset]))
+        echfs_debug("detected cycle in rehash_path\n");
 }
 
 static void remove_cached_path(const char *path) {
@@ -229,6 +254,9 @@ static void remove_cached_path(const char *path) {
             break;
         }
     }
+    if(detect_cycle(echfs.path_cache.table[offset]))
+        echfs_debug("detected cycle in remove_cached_path with path %s\n",
+                path);
 }
 
 static void insert_cached_path(struct path_result_t *path_res,
@@ -243,6 +271,9 @@ static void insert_cached_path(struct path_result_t *path_res,
         for (; element->next; element = element->next);
         element->next = path_res;
     }
+    if(detect_cycle(table->table[offset]))
+        echfs_debug("detected cycle in insert_cached_path with path %s\n",
+                path_res->path);
 
     table->num_elements++;
 }
@@ -251,6 +282,7 @@ static void cache_path(struct path_result_t *path_res) {
     double load_factor = (echfs.path_cache.num_elements + 1) /
         echfs.path_cache.size;
     if (load_factor > 0.75) {
+        echfs_debug("rehashing table!\n");
         /* rehash */
         struct path_result_table new_table = init_table(echfs.path_cache.size
                 * 2);
