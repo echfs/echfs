@@ -149,7 +149,7 @@ static uint64_t import_chain(FILE *source) {
         abort();
     }
 
-    echfs_fseek(source, 0L, SEEK_END);
+    fseek(source, 0L, SEEK_END);
     uint64_t source_size = (uint64_t)ftell(source);
     rewind(source);
 
