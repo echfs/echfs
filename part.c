@@ -97,8 +97,11 @@ int gpt_get_part(struct part *ret, FILE *file, int partition) {
     fseek(file, (header.partition_entry_lba * 512) + (partition * sizeof(entry)), SEEK_SET);
     fread(&entry, 1, sizeof(entry), file);
 
+    if (entry.unique_partition_guid.low  == 0 &&
+        entry.unique_partition_guid.high == 0) return -1;
+
     ret->first_sect = entry.starting_lba;
-    ret->sect_count = entry.ending_lba - entry.starting_lba;
+    ret->sect_count = (entry.ending_lba - entry.starting_lba) + 1;
 
     return 0;
 }
