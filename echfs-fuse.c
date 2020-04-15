@@ -1,6 +1,5 @@
 #define FUSE_USE_VERSION 29
 
-#include "mbr.h"
 #include <fuse.h>
 #include <string.h>
 #include <stddef.h>
@@ -10,6 +9,8 @@
 #include <assert.h>
 #include <errno.h>
 #include <sys/time.h>
+
+#include "part.h"
 
 #define RESERVED_BLOCKS 16
 #define SEARCH_FAILURE          0xffffffffffffffff
@@ -73,7 +74,7 @@ static struct echfs {
     char *mountpoint;
     struct fuse_chan *chan;
     struct fuse_session *session;
-    int mbr, partition;
+    int mbr, gpt, partition;
     uint64_t part_offset;
 
     FILE *image;
@@ -324,9 +325,15 @@ static void *echfs_init(struct fuse_conn_info *conn) {
     }
 
     if (echfs.mbr) {
-        struct mbr_part mbr = mbr_get_part(echfs.image, echfs.partition);
-        echfs.part_offset = mbr.first_sect * 512;
-        echfs.image_size = mbr.sect_count * 512;
+        struct part p;
+        mbr_get_part(&p, echfs.image, echfs.partition);
+        echfs.part_offset = p.first_sect * 512;
+        echfs.image_size  = p.sect_count * 512;
+    } else if (echfs.gpt) {
+        struct part p;
+        gpt_get_part(&p, echfs.image, echfs.partition);
+        echfs.part_offset = p.first_sect * 512;
+        echfs.image_size  = p.sect_count * 512;
     } else {
         echfs.part_offset = 0;
         fseek(echfs.image, 0L, SEEK_END);
@@ -1044,6 +1051,7 @@ static struct options {
     int show_help;
     int debug;
     int mbr;
+    int gpt;
     int partition;
 } options;
 
@@ -1054,6 +1062,7 @@ static const struct fuse_opt option_spec[] = {
     OPTION("--help", show_help),
     OPTION("-d", debug),
     OPTION("--mbr", mbr),
+    OPTION("--gpt", gpt),
     OPTION("-p %i", partition),
     FUSE_OPT_END
 };
@@ -1107,6 +1116,7 @@ int main(int argc, char **argv) {
     echfs.mountpoint = real_mountpoint;
     echfs.image_path = real_image_path;
     echfs.mbr = options.mbr;
+    echfs.gpt = options.gpt;
     echfs.partition = options.partition;
 
     struct fuse_chan *chan = fuse_mount(echfs.mountpoint, &args);

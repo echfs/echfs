@@ -1,5 +1,3 @@
-#include "mbr.h"
-
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -10,6 +8,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <time.h>
+
+#include "part.h"
 
 #define SEARCH_FAILURE          0xffffffffffffffff
 #define ROOT_ID                 0xffffffffffffffff
@@ -51,7 +51,8 @@ typedef struct {
 
 static int verbose = 0;
 static int mbr = 0;
-static int mbr_part = 0;
+static int gpt = 0;
+static int part = 0;
 
 static FILE* image;
 static uint64_t part_offset;
@@ -600,7 +601,7 @@ static void format_pass2(void) {
 
 int main(int argc, char **argv) {
     int opt;
-    while ((opt = getopt(argc, argv, "vmp:")) != -1) {
+    while ((opt = getopt(argc, argv, "vmgp:")) != -1) {
         switch (opt) {
             case 'v':
                 verbose = 1;
@@ -608,8 +609,11 @@ int main(int argc, char **argv) {
             case 'm':
                 mbr = 1;
                 break;
+            case 'g':
+                gpt = 1;
+                break;
             case 'p':
-                mbr_part = atoi(optarg);
+                part = atoi(optarg);
                 break;
             default:
                 fprintf(stderr, "Usage: %s <opts> [image] <action> <args...>\n",
@@ -631,9 +635,15 @@ int main(int argc, char **argv) {
     }
 
     if (mbr) {
-        struct mbr_part mbr_data = mbr_get_part(image, mbr_part);
-        part_offset = mbr_data.first_sect * 512;
-        imgsize = mbr_data.sect_count * 512;
+        struct part p;
+        mbr_get_part(&p, image, part);
+        part_offset = p.first_sect * 512;
+        imgsize     = p.sect_count * 512;
+    } else if (gpt) {
+        struct part p;
+        gpt_get_part(&p, image, part);
+        part_offset = p.first_sect * 512;
+        imgsize     = p.sect_count * 512;
     } else {
         part_offset = 0;
         fseek(image, 0L, SEEK_END);
@@ -644,7 +654,7 @@ int main(int argc, char **argv) {
     argv[optind - 1] = argv[0];
     argc -= optind - 1;
     argv += optind - 1;
-    if ((argc > 2) && (!strcmp(argv[2], "format"))) format_pass1(argc, 
+    if ((argc > 2) && (!strcmp(argv[2], "format"))) format_pass1(argc,
             argv, 0);
     if ((argc > 2) && (!strcmp(argv[2], "quick-format"))) format_pass1(
             argc, argv, 1);
