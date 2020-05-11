@@ -18,8 +18,7 @@ block 0 contains the identity table as follows:
 
 Allocation table. Starts at block 16.
     Contains a chain of qwords. One per physical block, hence the size of the table (in blocks)
-    can be calculated as: (total_blocks * sizeof(uint64_t)) / block_size
-    Adjusting for an eventual remainder.
+    can be calculated as: (total_blocks * sizeof(uint64_t) + block_size - 1) / block_size
 
     A value of 0x00000000_00000000 means "Free-for-use block"
     Values from 0x00000000_00000001 to 0xFFFFFFFF_FFFFFFEF mark the next block in the chain.
