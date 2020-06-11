@@ -1008,7 +1008,7 @@ static int echfs_rename(const char *path, const char *new) {
     if (path_res->failure)
         return -ENOENT;
 
-    struct path_result_t *new_res = resolve_path(new);
+    echfs_unlink(new);
 
     const char *new_name = strrchr(new, '/');
     if (!new_name)
