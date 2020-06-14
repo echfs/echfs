@@ -539,6 +539,7 @@ static struct path_result_t *resolve_path(const char *path) {
 
     strcpy(path_result->name, entry.name);
     path_result->type = path_result->target.type;
+    path_result->failure = 0;
     cache_path(path_result);
     return path_result;
 }
