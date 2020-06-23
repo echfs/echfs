@@ -4,8 +4,12 @@ CFLAGS=-O3 -Wall -Wextra -pipe
 
 .PHONY: all clean install
 
-all:
+all: echfs-utils echfs-fuse 
+
+echfs-utils: echfs-utils.c part.c part.h
 	$(CC) $(CFLAGS) part.c echfs-utils.c -o echfs-utils
+
+echfs-fuse: echfs-fuse.c part.c part.h
 	$(CC) $(CFLAGS) part.c echfs-fuse.c $(shell pkg-config fuse --cflags --libs) -o echfs-fuse
 
 clean:
