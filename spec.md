@@ -2,11 +2,11 @@
 
 **Blocks start with block 0, and are addressed as quad-words.**
 
-The file system should be addressable using 32-bit addressing too, in a _compatibility mode_.
+The file system should be addressable using 32-bit addressing too, in a "compatibility mode".
 
 Of course, when addressing using 32-bit values the maximum number of blocks will be 2^32, same thing for file sizes and other values.
 
-## block#0 -> block#15
+## block#0 to block#15
 
 Reserved blocks. Always. A bigger block size will result in more reserved space.
 
