@@ -28,6 +28,12 @@
 #define MAX_HANDLES 1024
 #define MAX_PATH_LEN 4096
 
+#if defined(__APPLE__) || defined(__NetBSD__)
+#define st_atim st_atimespec
+#define st_ctim st_ctimespec
+#define st_mtim st_mtimespec
+#endif
+
 struct entry_t {
     uint64_t parent_id;
     uint8_t type;
