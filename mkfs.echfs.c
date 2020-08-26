@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
     uint64_t imgsize = (uint64_t)ftell(image);
     rewind(image);
     fclose(image);
-    image = fopen(argv[1], "wb");
+    image = fopen(argv[1], "r+");
 
     fprintf(stderr, "%s: info: formatting %lu bytes...\n", argv[0], imgsize);
 
