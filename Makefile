@@ -23,3 +23,4 @@ install:
 	install -d $(PREFIX)/bin
 	install -s echfs-utils $(PREFIX)/bin
 	install -s echfs-fuse $(PREFIX)/bin
+	install -s mkfs.echfs $(PREFIX)/bin
