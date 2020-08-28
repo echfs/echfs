@@ -18,6 +18,7 @@ mkfs.echfs: mkfs.echfs.c
 clean:
 	rm -f echfs-utils
 	rm -f echfs-fuse
+	rm -f mkfs.echfs
 
 install:
 	install -d $(PREFIX)/bin
