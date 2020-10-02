@@ -1026,6 +1026,28 @@ static int echfs_rename(const char *path, const char *new) {
     return 0;
 }
 
+static int echfs_link(const char* from, const char* to) {
+    echfs_debug("echfs_link() from %s to %s\n", from, to);
+
+    struct path_result_t *path_result = resolve_path(from);
+    if (path_result->failure) return -ENOENT;
+    if (path_result->target.type == DIRECTORY_TYPE) return -EISDIR;
+
+    path_result = resolve_path(to);
+    if (!path_result->failure)
+        return -EEXIST;
+
+    struct entry_t entry = {0};
+    memcpy(&entry, &(path_result->target), sizeof(struct entry_t));
+    strcpy(entry.name, to);
+    uint64_t i = find_free_entry();
+    if (i == SEARCH_FAILURE) return -EIO;
+    wr_entry(&entry, i);
+    return 0;
+}
+
+
+
 static struct fuse_operations operations = {
     .init = echfs_init,
     .destroy = echfs_destroy,
@@ -1046,6 +1068,7 @@ static struct fuse_operations operations = {
     .mkdir = echfs_mkdir,
     .rmdir = echfs_rmdir,
     .rename = echfs_rename,
+    .link = echfs_link,
 };
 
 static struct options {
