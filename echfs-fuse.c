@@ -1026,7 +1026,8 @@ static int echfs_rename(const char *path, const char *new) {
     return 0;
 }
 
-static int echfs_link(const char* from, const char* to) {
+// Commented out because we have no ref count
+/*static int echfs_link(const char* from, const char* to) {
     echfs_debug("echfs_link() from %s to %s\n", from, to);
 
     struct path_result_t *path_result = resolve_path(from);
@@ -1044,7 +1045,7 @@ static int echfs_link(const char* from, const char* to) {
     if (i == SEARCH_FAILURE) return -EIO;
     wr_entry(&entry, i);
     return 0;
-}
+}*/
 
 
 
