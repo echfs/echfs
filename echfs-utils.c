@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <time.h>
+#include <uuid/uuid.h>
 
 #include "part.h"
 
@@ -561,6 +562,16 @@ static void format_pass1(int argc, char **argv, int quick) {
     wr_qword(20, blocks / 20); // blocks / 20 (roughly 5% of the total)
     // block size
     wr_qword(28, bytesperblock);
+
+    // write UUID
+    uuid_t uuid;
+    uuid_generate_random(uuid);
+    wr_qword(40, ((uint64_t *)uuid)[0]);
+    wr_qword(48, ((uint64_t *)uuid)[1]);
+
+    char uuid_str[37];
+    uuid_unparse_lower(uuid, uuid_str);
+    puts(uuid_str);
 
     if (!quick) {
         echfs_fseek(image, (RESERVED_BLOCKS * bytesperblock), SEEK_SET);

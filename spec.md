@@ -17,6 +17,8 @@ db '_ECH_FS_'  ; echidnaFS signature
 qword          ; total block count
 qword          ; length of the main directory in blocks (usually 5% of the total blocks)
 qword          ; bytes per block (MUST be a multiple of 512)
+dword          ; reserved
+qword[2]       ; UUID of partition
 ```
 
 ## block#16: Allocation table
