@@ -3,9 +3,11 @@ init:	jmp short .jmp	; reserved for jump instruction, or other purposes
 	nop
 	nop		; fill up gap
 	db '_ECH_FS_'	; echidnaFS signature
-	dq 0		; total block count
-	dq 0		; length of the main directory in blocks (usually 5% of the total blocks)
-	dq 0		; bytes per block (MUST be a multiple of 512)
+	dq 0			; total block count
+	dq 0			; length of the main directory in blocks (usually 5% of the total blocks)
+	dq 0			; bytes per block (MUST be a multiple of 512)
+	dd 0			; reserved
+	times 16 db 0	; UUID
 .jmp:	push cs
 	pop ds
 	push cs
