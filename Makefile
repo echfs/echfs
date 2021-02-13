@@ -25,6 +25,7 @@ clean:
 	rm -f echfs-utils
 	rm -f echfs-fuse
 	rm -f mkfs.echfs
+	rm -f boot.bin boot.o
 
 install:
 	install -d $(PREFIX)/bin
