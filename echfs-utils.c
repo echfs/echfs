@@ -505,18 +505,19 @@ static void ls_cmd(int argc, char **argv) {
     if (argc < 4)
         id = ROOT_ID;
     else {
-        if (path_resolver(argv[3], DIRECTORY_TYPE).not_found) {
+        path_result_t result = path_resolver(argv[3], DIRECTORY_TYPE);
+        if (result.not_found) {
             fprintf(stderr, "%s: %s: error: invalid directory `%s`.\n", argv[0], argv[2], argv[3]);
             return;
         } else
-            id = path_resolver(argv[3], DIRECTORY_TYPE).target.payload;
+            id = result.target.payload;
     }
 
     if (verbose) fprintf(stdout, "  ---- ls ----\n");
 
     entry_t entryy;
-    rd_entry(&entryy, id);
-    for (uint64_t i = 0; entryy.parent_id; i++) {
+    uint64_t entry = 0;
+    while (rd_entry(&entryy, entry++), entryy.parent_id != 0) {
         if (entryy.parent_id != id) continue;
         if (entryy.type == DIRECTORY_TYPE) fputc('[', stdout);
         fputs(entryy.name, stdout);
