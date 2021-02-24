@@ -9,6 +9,8 @@ all: echfs-utils echfs-fuse mkfs.echfs
 
 boot.bin: boot.asm
 	nasm -fbin -o boot.bin boot.asm
+	@test $$(stat -c%s boot.bin) -eq 512 || \
+		(echo Error: boot.asm must assemble to exactly 512 bytes. && rm boot.bin && exit 1)
 
 boot.o: boot.bin
 	$(OBJCOPY) -B i8086 -I binary -O default boot.bin boot.o
