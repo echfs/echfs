@@ -18,8 +18,8 @@ A FUSE implementation of a filesystem driver named `echfs-fuse` is also provided
 
 # Build dependencies
 
-`echfs-fuse` depends on `libuuid` and `libfuse`. (On Debian/Ubuntu based distros,
-the packages are called `uuid-dev` and `libfuse-dev` respectively).
+`echfs-fuse` depends on `libuuid`, `libfuse`, and `pkg-config`. (On Debian/Ubuntu based distros,
+the packages are called `uuid-dev`, `libfuse-dev`, and `pkg-config`, respectively).
 
 On systems where FUSE is not available, it is possible to compile `echfs-utils`
 exclusively by running `make utils` instead of `make` and `make install-utils`
