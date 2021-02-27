@@ -54,6 +54,7 @@ static int verbose = 0;
 static int mbr = 0;
 static int gpt = 0;
 static int part = 0;
+static int force = 0;
 
 static FILE* image;
 static uint64_t part_offset;
@@ -228,6 +229,19 @@ static void export_chain(FILE *dest, entry_t src) {
 
     free(block_buf);
     return;
+}
+
+static void delete_chain(uint64_t payload) {
+    if (payload != END_OF_CHAIN) {
+        uint64_t block = payload;
+        for (;;) {
+            uint64_t next_block = rd_qword((fatstart * bytesperblock) + (block * sizeof(uint64_t)));
+            wr_qword((fatstart * bytesperblock) + (block * sizeof(uint64_t)), 0);
+            if (next_block == END_OF_CHAIN)
+                break;
+            block = next_block;
+        }
+    }
 }
 
 static uint64_t search(const char *name, uint64_t parent, uint8_t type) {
@@ -422,7 +436,7 @@ subdir:
     path_result_t path_result = path_resolver(argv[4], FILE_TYPE);
 
     // check if the file exists
-    if (!path_result.not_found) {
+    if (!path_result.not_found && !force) {
         fprintf(stderr, "%s: %s: error: file `%s` already exists.\n", argv[0], argv[2], argv[4]);
         return;
     }
@@ -432,10 +446,24 @@ subdir:
         return;
     }
 
+    uint64_t payload = import_chain(source);
+
+    if (!path_result.not_found) {
+        path_result.target.payload = payload;
+#ifdef __APPLE__
+        path_result.target.mtime = s.st_mtimespec.tv_sec;
+#else
+        path_result.target.mtime = s.st_mtim.tv_sec;
+#endif
+        wr_entry(path_result.target_entry, &path_result.target);
+        fclose(source);
+        return;
+    }
+
     entry.parent_id = path_result.parent.payload;
     entry.type = FILE_TYPE;
     strcpy(entry.name, path_result.name);
-    entry.payload = import_chain(source);
+    entry.payload = payload;
     fseek(source, 0L, SEEK_END);
     entry.size = (uint64_t)ftell(source);
 
@@ -613,7 +641,7 @@ static void format_pass2(void) {
 
 int main(int argc, char **argv) {
     int opt;
-    while ((opt = getopt(argc, argv, "vmgp:")) != -1) {
+    while ((opt = getopt(argc, argv, "vmgfp:")) != -1) {
         switch (opt) {
             case 'v':
                 verbose = 1;
@@ -626,6 +654,9 @@ int main(int argc, char **argv) {
                 break;
             case 'p':
                 part = atoi(optarg);
+                break;
+            case 'f':
+                force = 1;
                 break;
             default:
                 fprintf(stderr, "Usage: %s <opts> [image] <action> <args...>\n",
