@@ -3,9 +3,13 @@ OBJCOPY=objcopy
 PREFIX=/usr/local
 CFLAGS=-O3 -Wall -Wextra -pipe
 
-.PHONY: all clean install
+.PHONY: all utils fuse clean install
 
-all: echfs-utils echfs-fuse mkfs.echfs
+all: utils fuse
+
+utils: echfs-utils mkfs.echfs
+
+fuse: echfs-fuse
 
 boot.bin: boot.asm
 	nasm -fbin -o boot.bin boot.asm
@@ -30,10 +34,15 @@ clean:
 	rm -f mkfs.echfs
 	rm -f boot.bin boot.o
 
-install:
+install-utils: utils
 	install -d $(PREFIX)/bin
+	install -s mkfs.echfs $(PREFIX)/bin
 	install -s echfs-utils $(PREFIX)/bin
+
+install-fuse: fuse
+	install -d $(PREFIX)/bin
 	install -s echfs-fuse $(PREFIX)/bin
 	ln -sf $(PREFIX)/bin/echfs-fuse $(PREFIX)/sbin/mount.echfs-fuse
 	ln -sf $(PREFIX)/bin/echfs-fuse $(PREFIX)/sbin/mount.echfs
-	install -s mkfs.echfs $(PREFIX)/bin
+
+install: install-utils install-fuse

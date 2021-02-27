@@ -16,15 +16,25 @@ You can compile and install the `echfs-utils` program using `make` the usual way
 
 A FUSE implementation of a filesystem driver named `echfs-fuse` is also provided (thanks to Geertiebear).
 
+# Build dependencies
+
+`echfs-fuse` depends on `libuuid` and `libfuse`. (On Debian/Ubuntu based distros,
+the packages are called `uuid-dev` and `libfuse-dev` respectively).
+
+On systems where FUSE is not available, it is possible to compile `echfs-utils`
+exclusively by running `make utils` instead of `make` and `make install-utils`
+instead of `make install`.
+
+# Building
+
 ```
 make
 sudo make install
 ```
 
+# Usage
 
-## Usage:
-
-### echfs-utils
+## echfs-utils
 
 echfs-utils is used as ``echfs-utils <flags> <image> <command> <command args...>``, where
 a command can be any of the following:
@@ -45,7 +55,7 @@ There are also several flags you can specify
 * ``-p <part>`` specify which partition the echfs image is in
 * ``-v`` be verbose
 
-### echfs-fuse
+## echfs-fuse
 
 echfs-fuse is used as ``echfs-fuse <flags> <image> <mountpoint>``, with the following flags:
 
@@ -54,7 +64,7 @@ echfs-fuse is used as ``echfs-fuse <flags> <image> <mountpoint>``, with the foll
 * ``-p <part>`` specify which partition the echfs image is in
 * ``-d`` run in debug mode (don't detach)
 
-### Creating a filesystem
+## Creating a filesystem
 
 A filesystem can be created with the following commands
 ```
