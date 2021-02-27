@@ -53,3 +53,13 @@ echfs-fuse is used as ``echfs-fuse <flags> <image> <mountpoint>``, with the foll
 * ``-g`` specify that the image is GPT formatted
 * ``-p <part>`` specify which partition the echfs image is in
 * ``-d`` run in debug mode (don't detach)
+
+### Creating a filesystem
+
+A filesystem can be created with the following commands
+```
+dd if=/dev/zero of=image.hdd bs=4M count=128
+parted -s image.hdd mklabel msdos
+parted -s image.hdd mkpart primary 2048s 100%
+echfs-utils -m -p0 image.hdd quick-format 512
+```
