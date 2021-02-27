@@ -34,6 +34,6 @@ install:
 	install -d $(PREFIX)/bin
 	install -s echfs-utils $(PREFIX)/bin
 	install -s echfs-fuse $(PREFIX)/bin
-	ln -s $(PREFIX)/bin/echfs-fuse $(PREFIX)/sbin/mount.echfs-fuse
-	ln -s $(PREFIX)/bin/echfs-fuse $(PREFIX)/sbin/mount.echfs
+	ln -sf $(PREFIX)/bin/echfs-fuse $(PREFIX)/sbin/mount.echfs-fuse
+	ln -sf $(PREFIX)/bin/echfs-fuse $(PREFIX)/sbin/mount.echfs
 	install -s mkfs.echfs $(PREFIX)/bin
