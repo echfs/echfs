@@ -42,6 +42,7 @@ install-utils: utils
 
 install-fuse: fuse
 	install -d $(DESTDIR)$(PREFIX)/bin
+	install -d $(DESTDIR)$(PREFIX)/sbin
 	install -s echfs-fuse $(DESTDIR)$(PREFIX)/bin
 	ln -sf $(DESTDIR)$(PREFIX)/bin/echfs-fuse $(DESTDIR)$(PREFIX)/sbin/mount.echfs-fuse
 	ln -sf $(DESTDIR)$(PREFIX)/bin/echfs-fuse $(DESTDIR)$(PREFIX)/sbin/mount.echfs
