@@ -1,5 +1,6 @@
 CC=cc
 OBJCOPY=objcopy
+DESTDIR=
 PREFIX=/usr/local
 CFLAGS=-O3 -Wall -Wextra -pipe
 
@@ -35,14 +36,14 @@ clean:
 	rm -f boot.bin boot.o
 
 install-utils: utils
-	install -d $(PREFIX)/bin
-	install -s mkfs.echfs $(PREFIX)/bin
-	install -s echfs-utils $(PREFIX)/bin
+	install -d $(DESTDIR)$(PREFIX)/bin
+	install -s mkfs.echfs $(DESTDIR)$(PREFIX)/bin
+	install -s echfs-utils $(DESTDIR)$(PREFIX)/bin
 
 install-fuse: fuse
-	install -d $(PREFIX)/bin
-	install -s echfs-fuse $(PREFIX)/bin
-	ln -sf $(PREFIX)/bin/echfs-fuse $(PREFIX)/sbin/mount.echfs-fuse
-	ln -sf $(PREFIX)/bin/echfs-fuse $(PREFIX)/sbin/mount.echfs
+	install -d $(DESTDIR)$(PREFIX)/bin
+	install -s echfs-fuse $(DESTDIR)$(PREFIX)/bin
+	ln -sf $(DESTDIR)$(PREFIX)/bin/echfs-fuse $(DESTDIR)$(PREFIX)/sbin/mount.echfs-fuse
+	ln -sf $(DESTDIR)$(PREFIX)/bin/echfs-fuse $(DESTDIR)$(PREFIX)/sbin/mount.echfs
 
 install: install-utils install-fuse
