@@ -4,18 +4,12 @@ DESTDIR=
 PREFIX=/usr/local
 CFLAGS=-O3 -Wall -Wextra -pipe
 
-.PHONY: all utils fuse clean install
+.PHONY: all clean install-fuse install-utils install-mkfs install
 
-all: utils fuse
-
-utils: echfs-utils mkfs.echfs
-
-fuse: echfs-fuse
+all: echfs-utils echfs-fuse mkfs.echfs
 
 boot.bin: boot.asm
 	nasm -fbin -o boot.bin boot.asm
-	@test $$(stat -c%s boot.bin) -eq 512 || \
-		(echo Error: boot.asm must assemble to exactly 512 bytes. && rm boot.bin && exit 1)
 
 boot.o: boot.bin
 	$(OBJCOPY) -B i8086 -I binary -O default boot.bin boot.o
@@ -35,15 +29,18 @@ clean:
 	rm -f mkfs.echfs
 	rm -f boot.bin boot.o
 
-install-utils: utils
+install-mkfs: mkfs.echfs
 	install -d $(DESTDIR)$(PREFIX)/bin
 	install -s mkfs.echfs $(DESTDIR)$(PREFIX)/bin
+
+install-utils: echfs-utils
+	install -d $(DESTDIR)$(PREFIX)/bin
 	install -s echfs-utils $(DESTDIR)$(PREFIX)/bin
 
-install-fuse: fuse
+install-fuse: echfs-fuse
 	install -d $(DESTDIR)$(PREFIX)/bin
 	install -s echfs-fuse $(DESTDIR)$(PREFIX)/bin
 	ln -sf $(DESTDIR)$(PREFIX)/bin/echfs-fuse $(DESTDIR)$(PREFIX)/bin/mount.echfs-fuse
 	ln -sf $(DESTDIR)$(PREFIX)/bin/echfs-fuse $(DESTDIR)$(PREFIX)/bin/mount.echfs
 
-install: install-utils install-fuse
+install: install-utils install-fuse install-mkfs
