@@ -3,6 +3,7 @@ OBJCOPY=objcopy
 DESTDIR=
 PREFIX=/usr/local
 CFLAGS=-O3 -Wall -Wextra -pipe
+LDFLAGS=
 
 .PHONY: all clean install-fuse install-utils install-mkfs install
 
@@ -15,13 +16,13 @@ boot.o: boot.bin
 	$(OBJCOPY) -B i8086 -I binary -O default boot.bin boot.o
 
 echfs-utils: echfs-utils.c part.c part.h
-	$(CC) $(CFLAGS) part.c echfs-utils.c -luuid -o echfs-utils
+	$(CC) $(CFLAGS) $(LDFLAGS) part.c echfs-utils.c -luuid -o echfs-utils
 
 echfs-fuse: echfs-fuse.c part.c part.h
-	$(CC) $(CFLAGS) part.c echfs-fuse.c $(shell pkg-config fuse --cflags --libs) -o echfs-fuse
+	$(CC) $(CFLAGS) $(LDFLAGS) part.c echfs-fuse.c $(shell pkg-config fuse --cflags --libs) -o echfs-fuse
 
 mkfs.echfs: boot.o mkfs.echfs.c
-	$(CC) $(CFLAGS) boot.o mkfs.echfs.c -o mkfs.echfs
+	$(CC) $(CFLAGS) $(LDFLAGS) boot.o mkfs.echfs.c -o mkfs.echfs
 
 clean:
 	rm -f echfs-utils
