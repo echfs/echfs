@@ -1,6 +1,6 @@
-#define FUSE_USE_VERSION 29
+#define FUSE_USE_VERSION 312
 
-#include <fuse.h>
+#include <fuse3/fuse.h>
 #include <string.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -113,11 +113,6 @@ static void echfs_debug(const char *fmt, ...) {
 #else
     (void)fmt;
 #endif
-}
-
-static void cleanup_fuse() {
-    fuse_unmount(echfs.mountpoint, echfs.chan);
-    fuse_remove_signal_handlers(echfs.session);
 }
 
 static inline int echfs_fseek(FILE *file, long loc, int mode) {
@@ -313,14 +308,14 @@ static struct path_result_t *get_cached_path(const char *path) {
     return NULL;
 }
 
-static void *echfs_init(struct fuse_conn_info *conn) {
+static void *echfs_init(struct fuse_conn_info *conn, struct fuse_config *config) {
     (void) conn;
+    (void) config;
 
     memset(&handles, 0, sizeof(handles));
     echfs.image = fopen(echfs.image_path, "r+");
     if (!echfs.image) {
         fprintf(stderr, "Error opening echfs image %s!\n", echfs.image_path);
-        cleanup_fuse();
         exit(1);
     }
 
@@ -347,14 +342,12 @@ static void *echfs_init(struct fuse_conn_info *conn) {
     int ret = fread(signature, 8, 1, echfs.image);
     if (ret != 1) {
         fprintf(stderr, "error reading signature!\n");
-        cleanup_fuse();
         fclose(echfs.image);
         exit(1);
     }
 
     if (strncmp(signature, "_ECH_FS_", 8)) {
         fprintf(stderr, "echdinaFS signature missing!\n");
-        cleanup_fuse();
         fclose(echfs.image);
         exit(1);
     }
@@ -364,7 +357,6 @@ static void *echfs_init(struct fuse_conn_info *conn) {
     echfs_debug("echfs block size: %lu\n", echfs.bytes_per_block);
     if (echfs.image_size % echfs.bytes_per_block) {
         fprintf(stderr, "image is not block aligned!\n");
-        cleanup_fuse();
         fclose(echfs.image);
         exit(1);
     }
@@ -404,7 +396,6 @@ static void *echfs_init(struct fuse_conn_info *conn) {
     echfs.dir_table = malloc(echfs.dir_size * echfs.bytes_per_block);
     if (!echfs.dir_table) {
         fprintf(stderr, "error allocating dir_table!\n");
-        cleanup_fuse();
         fclose(echfs.image);
         exit(1);
     }
@@ -413,7 +404,6 @@ static void *echfs_init(struct fuse_conn_info *conn) {
             echfs.bytes_per_block, echfs.image);
     if (ret != (echfs.dir_size * echfs.bytes_per_block)) {
         fprintf(stderr, "error reading dir_table!\n");
-        cleanup_fuse();
         fclose(echfs.image);
         free(echfs.dir_table);
         exit(1);
@@ -422,7 +412,6 @@ static void *echfs_init(struct fuse_conn_info *conn) {
     echfs.fat = malloc(echfs.fat_size * echfs.bytes_per_block);
     if (!echfs.fat) {
         fprintf(stderr, "error allocating allocation table!\n");
-        cleanup_fuse();
         fclose(echfs.image);
         free(echfs.dir_table);
         exit(1);
@@ -432,7 +421,6 @@ static void *echfs_init(struct fuse_conn_info *conn) {
             echfs.image);
     if (ret != (echfs.fat_size * echfs.bytes_per_block)) {
         fprintf(stderr, "error reading allocation table!\n");
-        cleanup_fuse();
         fclose(echfs.image);
         free(echfs.dir_table);
         free(echfs.fat);
@@ -600,13 +588,22 @@ static int echfs_opendir(const char *dir_path,
     return 0;
 }
 
-static int echfs_fgetattr(const char *path, struct stat *stat,
+static int echfs_getattr(const char *path, struct stat *stat,
         struct fuse_file_info *file_info) {
     echfs_debug("fgetattr() on %s\n", path);
-    if (file_info->fh >= MAX_HANDLES) return -EBADF;
-    if (!handles[file_info->fh].occupied) return -EBADF;
-    struct echfs_handle_t *handle = &handles[file_info->fh];
-    struct path_result_t *path_result = handle->path_res;
+    struct path_result_t *path_result;
+    if (file_info) {
+        if (file_info->fh >= MAX_HANDLES) return -EBADF;
+        if (!handles[file_info->fh].occupied) return -EBADF;
+        struct echfs_handle_t *handle = &handles[file_info->fh];
+        path_result = handle->path_res;
+    } else {
+        path_result = resolve_path(path);
+    }
+
+    if (path_result->failure) {
+        return -ENOENT;
+    }
 
     stat->st_ino = path_result->target_entry + 1;
     stat->st_nlink = 1;
@@ -637,45 +634,9 @@ static int echfs_fgetattr(const char *path, struct stat *stat,
     return 0;
 }
 
-static int echfs_getattr(const char *path, struct stat *stat) {
-    echfs_debug("getattr() on %s\n", path);
-
-    struct path_result_t *path_result = resolve_path(path);
-    if (path_result->failure) {
-        return -ENOENT;
-    }
-
-    stat->st_ino = path_result->target_entry + 1;
-    stat->st_nlink = 1;
-    stat->st_uid = path_result->target.owner;
-    stat->st_gid = path_result->target.group;
-    stat->st_rdev = 0;
-    stat->st_size = path_result->target.size;
-    stat->st_blksize = 512;
-    stat->st_blocks = (stat->st_size + 512 - 1) / 512;
-    stat->st_atim.tv_sec = path_result->target.atime;
-    stat->st_atim.tv_nsec = 0;
-    stat->st_mtim.tv_sec = path_result->target.mtime;
-    stat->st_mtim.tv_nsec = 0;
-    stat->st_ctim.tv_sec = path_result->target.ctime;
-    stat->st_ctim.tv_nsec = 0;
-
-    stat->st_mode = 0;
-    switch (path_result->target.type) {
-        case DIRECTORY_TYPE:
-            stat->st_mode |= S_IFDIR;
-            break;
-        case FILE_TYPE:
-            stat->st_mode |= S_IFREG;
-            break;
-    }
-
-    stat->st_mode |= path_result->target.perms;
-    return 0;
-}
-
 static int echfs_readdir(const char *path, void *buf, fuse_fill_dir_t fill,
-        off_t offset, struct fuse_file_info *file_info) {
+    off_t offset, struct fuse_file_info *file_info, enum fuse_readdir_flags flags) {
+    (void) flags;
     echfs_debug("readdir() on %s and offset %lu\n", path, offset);
 
     struct echfs_handle_t *handle = &handles[file_info->fh];
@@ -690,7 +651,7 @@ static int echfs_readdir(const char *path, void *buf, fuse_fill_dir_t fill,
         struct entry_t *entry = &echfs.dir_table[i];
         if (!entry->parent_id) return 0;
         if (entry->parent_id == dir_id) {
-            if(fill(buf, entry->name, NULL, i + 1)) return 0;
+            if(fill(buf, entry->name, NULL, i + 1, 0)) return 0;
         }
     }
     return 0;
@@ -967,7 +928,8 @@ static int echfs_rmdir(const char *path) {
     return 0;
 }
 
-static int echfs_utimens(const char *path, const struct timespec tv[2]) {
+static int echfs_utimens(const char *path, const struct timespec tv[2], struct fuse_file_info *info) {
+    (void) info;
     echfs_debug("echfs_utimens() on %s\n", path);
     struct path_result_t *path_res = resolve_path(path);
 
@@ -979,31 +941,27 @@ static int echfs_utimens(const char *path, const struct timespec tv[2]) {
 }
 
 //TODO: free the blocks too
-static int echfs_truncate(const char *path, off_t size) {
+static int echfs_truncate(const char *path, off_t size,
+        struct fuse_file_info *file_info) {
     echfs_debug("echfs_truncate() on %s, size %lu\n", path, size);
-    struct path_result_t *path_res = resolve_path(path);
-    update_ctime(path_res);
+    struct path_result_t *path_res;
+    if (file_info) {
+        if (file_info->fh >= MAX_HANDLES) return -EBADF;
+        if (!handles[file_info->fh].occupied) return -EBADF;
+        if (handles[file_info->fh].path_res->type != FILE_TYPE) return -EISDIR;
+        path_res = handles[file_info->fh].path_res;
+    } else {
+        path_res = resolve_path(path);
+    }
+
     path_res->target.size = size;
+    update_ctime(path_res);
     wr_entry(&path_res->target, path_res->target_entry);
     return 0;
 }
 
-static int echfs_ftruncate(const char *path, off_t size,
-        struct fuse_file_info *file_info) {
-    echfs_debug("echfs_ftruncate() on %s, size %lu\n", path, size);
-    if (file_info->fh >= MAX_HANDLES) return -EBADF;
-    if (!handles[file_info->fh].occupied) return -EBADF;
-    if (handles[file_info->fh].path_res->type != FILE_TYPE) return -EISDIR;
-
-    struct echfs_handle_t *handle = &handles[file_info->fh];
-    handle->path_res->target.size = size;
-    update_ctime(handle->path_res);
-    wr_entry(&handle->path_res->target,
-            handle->path_res->target_entry);
-    return 0;
-}
-
-static int echfs_rename(const char *path, const char *new) {
+static int echfs_rename(const char *path, const char *new, unsigned int flags) {
+    (void) flags;
     echfs_debug("echfs_rename() on %s, %s\n", path, new);
     struct path_result_t *path_res = resolve_path(path);
     if (path_res->failure)
@@ -1031,7 +989,6 @@ static struct fuse_operations operations = {
     .destroy = echfs_destroy,
     .open = echfs_open,
     .opendir = echfs_opendir,
-    .fgetattr = echfs_fgetattr,
     .getattr = echfs_getattr,
     .readdir = echfs_readdir,
     .release = echfs_release,
@@ -1042,7 +999,6 @@ static struct fuse_operations operations = {
     .unlink = echfs_unlink,
     .utimens = echfs_utimens,
     .truncate = echfs_truncate,
-    .ftruncate = echfs_ftruncate,
     .mkdir = echfs_mkdir,
     .rmdir = echfs_rmdir,
     .rename = echfs_rename,
@@ -1054,6 +1010,7 @@ static struct options {
     int mbr;
     int gpt;
     int partition;
+    char *image;
 } options;
 
 #define OPTION(t, p)    \
@@ -1065,36 +1022,20 @@ static const struct fuse_opt option_spec[] = {
     OPTION("--mbr", mbr),
     OPTION("--gpt", gpt),
     OPTION("-p %i", partition),
+    OPTION("--image=%s", image),
     FUSE_OPT_END
 };
 
-static int option_cb(void *data, const char *arg, int key,
-        struct fuse_args *outargs) {
-    (void) outargs;
-    (void) data;
-    switch (key) {
-        case FUSE_OPT_KEY_NONOPT:
-            if (!echfs.image_path) {
-                echfs.image_path = strdup(arg);
-                return 0;
-            } else if (!echfs.mountpoint) {
-                echfs.mountpoint = strdup(arg);
-                return 0;
-            }
-    }
-    return 1;
-}
-
 static void show_help(const char *program_name) {
-    printf("usage: %s [options] <echfs image> <mountpoint>\n", program_name);
+    printf("usage: %s [options] --image=<echfs image> <mountpoint>\n", program_name);
 }
 
 int main(int argc, char **argv) {
-    echfs.image_path = echfs.mountpoint = 0;
+    memset(&options, 0, sizeof(struct options));
     struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
 
-    if (fuse_opt_parse(&args, &options, option_spec, option_cb)) {
-        fprintf(stderr, "Error reading command line options\n");
+    if (fuse_opt_parse(&args, &options, option_spec, NULL) == -1) {
+        fprintf(stderr, "%s: Error reading command line options\n", argv[0]);
         return 1;
     }
 
@@ -1104,52 +1045,14 @@ int main(int argc, char **argv) {
         args.argv[0][0] = '\0';
     }
 
-    if (!echfs.image_path || !echfs.mountpoint) {
-        fprintf(stderr, "Please specify echfs image and mountpoint!\n");
-        fuse_opt_free_args(&args);
+    if (options.image == NULL && !options.show_help) {
+        fprintf(stderr, "%s: please specify an echfs image to mount\n", argv[0]);
         return 1;
+    } else {
+        echfs.image_path = realpath(options.image, NULL);
     }
 
-    char *real_mountpoint = realpath(echfs.mountpoint, NULL);
-    char *real_image_path = realpath(echfs.image_path, NULL);
-    free(echfs.mountpoint);
-    free(echfs.image_path);
-    echfs.mountpoint = real_mountpoint;
-    echfs.image_path = real_image_path;
-    echfs.mbr = options.mbr;
-    echfs.gpt = options.gpt;
-    echfs.partition = options.partition;
-
-    struct fuse_chan *chan = fuse_mount(echfs.mountpoint, &args);
-    if (!chan) {
-        fuse_opt_free_args(&args);
-        return 1;
-    }
-
-    struct fuse *fuse = fuse_new(chan, &args, &operations,
-            sizeof(struct fuse_operations), NULL);
-    if (!fuse) {
-        fprintf(stderr, "Error initializing fuse!\n");
-        fuse_opt_free_args(&args);
-        return 1;
-    }
-
-    struct fuse_session *session = fuse_get_session(fuse);
-    int ret = fuse_set_signal_handlers(session);
-    if (ret) {
-        fuse_destroy(fuse);
-        fuse_opt_free_args(&args);
-        return 1;
-    }
-
-    echfs.chan = chan;
-    echfs.session = session;
-
-    fuse_daemonize(options.debug);
-    ret = fuse_loop(fuse);
-
-    cleanup_fuse();
-    fuse_destroy(fuse);
+    int ret = fuse_main(args.argc, args.argv, &operations, NULL);
     fuse_opt_free_args(&args);
     return ret;
 }

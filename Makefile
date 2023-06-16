@@ -19,7 +19,7 @@ echfs-utils: echfs-utils.c part.c part.h
 	$(CC) $(CFLAGS) $(LDFLAGS) part.c echfs-utils.c -luuid -o echfs-utils
 
 echfs-fuse: echfs-fuse.c part.c part.h
-	$(CC) $(CFLAGS) $(LDFLAGS) part.c echfs-fuse.c $(shell pkg-config fuse --cflags --libs) -o echfs-fuse
+	$(CC) $(CFLAGS) $(LDFLAGS) part.c echfs-fuse.c $(shell pkg-config fuse3 --cflags --libs) -o echfs-fuse
 
 mkfs.echfs: boot.o mkfs.echfs.c
 	$(CC) $(CFLAGS) $(LDFLAGS) boot.o mkfs.echfs.c -o mkfs.echfs
