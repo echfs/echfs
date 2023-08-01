@@ -44,7 +44,7 @@ Directory ID values:
 Directory entry structure:
 ```x86asm
 qword         ; Directory ID of the entry (see above)
-byte          ; Object type (0=file, 1=directory, rest to be implemented)
+byte          ; Object type (0=file, 1=directory, 2=symbolic link, 3=character device, 4=block device, 5=FIFO)
 times 201 db  ; Zero-terminated ascii string containing the name of the object. max. 200 chars + null byte.
 qword         ; 64-bit unix atime
 qword         ; 64-bit unix mtime
