@@ -1,0 +1,3 @@
+option('utils', type: 'feature', value: 'enabled')
+option('fuse', type: 'feature', value: 'enabled')
+option('mkfs', type: 'feature', value: 'enabled')
