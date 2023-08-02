@@ -28,7 +28,7 @@ the packages are called `libfuse-dev`, and `pkg-config`, respectively).
 
 # Building
 
-In either the `echfs-utils` or the `echfs-fuse`, run:
+In either the `echfs-utils` or the `echfs-fuse` directory, run:
 ```
 ./bootstrap
 ./configure
