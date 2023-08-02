@@ -1,14 +1,12 @@
-#define FUSE_USE_VERSION 312
-
-#include <fuse3/fuse.h>
+#include <stdio.h>
 #include <string.h>
 #include <stddef.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <assert.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <fuse.h>
 
 #include "part.h"
 

@@ -8,7 +8,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <time.h>
-#include <uuid/uuid.h>
+#include <uuid.h>
 
 #include "part.h"
 

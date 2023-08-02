@@ -10,24 +10,28 @@ Keep in mind that this is still a work in progress, and the specification might 
 I'll try to keep everything backwards compatible (in a clean way)
 when I add new features or make modifications to the filesystem.
 
-In this repo you can find the full specification in the `spec.txt` file,
+In this repo you can find the full specification in the `spec.md` file,
 and a utility to manipulate the filesystem (`echfs-utils`).
-You can compile and install the `echfs-utils` program using `make` the usual way.
+You can compile and install the `echfs-utils` program from the `echfs-utils`
+directory.
 
-A FUSE implementation of a filesystem driver named `echfs-fuse` is also provided (thanks to Geertiebear).
+A FUSE implementation of a filesystem driver named `echfs-fuse` is also provided
+(thanks to Geertiebear).
 
 # Build dependencies
 
-`echfs-fuse` depends on `libuuid`, `libfuse`, and `pkg-config`. (On Debian/Ubuntu based distros,
-the packages are called `uuid-dev`, `libfuse-dev`, and `pkg-config`, respectively).
+`echfs-utils` depends on `libuuid`, and `pkg-config`. (On Debian/Ubuntu based distros,
+the packages are called `uuid-dev`, and `pkg-config`, respectively).
 
-On systems where FUSE is not available, it is possible to compile `echfs-utils`
-exclusively by running `make utils` instead of `make` and `make install-utils`
-instead of `make install`.
+`echfs-fuse` depends on `libfuse`, and `pkg-config`. (On Debian/Ubuntu based distros,
+the packages are called `libfuse-dev`, and `pkg-config`, respectively).
 
 # Building
 
+In either the `echfs-utils` or the `echfs-fuse`, run:
 ```
+./bootstrap
+./configure
 make
 sudo make install
 ```

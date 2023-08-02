@@ -1,0 +1,13 @@
+#! /bin/sh
+
+set -ex
+
+srcdir="$(dirname "$0")"
+test -z "$srcdir" && srcdir=.
+
+cd "$srcdir"
+
+mkdir -p build-aux
+cp "$(automake --print-libdir)/install-sh" build-aux
+
+autoreconf -fvi -Wall
