@@ -56,8 +56,9 @@ fi
 
 PKGCONFIG_LIBS="uuid"
 
-CFLAGS="$CFLAGS $($PKGCONFIG --cflags $PKGCONFIG_LIBS)"
-LIBS="$LIBS $($PKGCONFIG --libs $PKGCONFIG_LIBS)"
+CFLAGS="$CFLAGS $($PKGCONFIG --cflags-only-other $PKGCONFIG_LIBS 2>/dev/null)"
+CPPFLAGS="$($PKGCONFIG --cflags-only-I $PKGCONFIG_LIBS 2>/dev/null) $CPPFLAGS"
+LIBS="$LIBS $($PKGCONFIG --libs $PKGCONFIG_LIBS 2>/dev/null)"
 
 AC_CHECK_HEADERS([stdio.h stdint.h stdlib.h string.h getopt.h inttypes.h sys/types.h sys/stat.h unistd.h time.h uuid.h],
     [], [AC_MSG_ERROR([required header not found])])

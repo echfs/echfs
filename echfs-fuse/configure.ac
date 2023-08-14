@@ -56,8 +56,9 @@ fi
 
 PKGCONFIG_LIBS="fuse3"
 
-CFLAGS="$CFLAGS $($PKGCONFIG --cflags $PKGCONFIG_LIBS) -DFUSE_USE_VERSION=312"
-LIBS="$LIBS $($PKGCONFIG --libs $PKGCONFIG_LIBS)"
+CFLAGS="$CFLAGS $($PKGCONFIG --cflags-only-other $PKGCONFIG_LIBS 2>/dev/null)"
+CPPFLAGS="$($PKGCONFIG --cflags-only-I $PKGCONFIG_LIBS 2>/dev/null) $CPPFLAGS -DFUSE_USE_VERSION=312"
+LIBS="$LIBS $($PKGCONFIG --libs $PKGCONFIG_LIBS 2>/dev/null)"
 
 AC_CHECK_HEADERS([stdio.h string.h stddef.h stdlib.h stdarg.h assert.h errno.h sys/time.h fuse.h],
     [], [AC_MSG_ERROR([required header not found])])
