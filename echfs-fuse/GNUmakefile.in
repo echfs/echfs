@@ -74,15 +74,15 @@ override CPPFLAGS := \
 all: $(OUTPUT)
 
 # Link rules for the final executable.
-$(OUTPUT): $(OBJ)
+$(OUTPUT): GNUmakefile $(OBJ)
 	$(MKDIR_P) bin
-	$(CC) $(CFLAGS) $(LDFLAGS) '$(call OBJESCAPE,$^)' $(LIBS) -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) '$(call OBJESCAPE,$(OBJ))' $(LIBS) -o $@
 
 # Include header dependencies.
 -include $(HEADER_DEPS)
 
 # Compilation rules for *.c files.
-$(call MKESCAPE,$(BUILDDIR))/%.c.o: $(call MKESCAPE,$(SRCDIR))/%.c
+$(call MKESCAPE,$(BUILDDIR))/%.c.o: $(call MKESCAPE,$(SRCDIR))/%.c GNUmakefile
 	$(MKDIR_P) "$$(dirname '$(call SHESCAPE,$@)')"
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c '$(call SHESCAPE,$<)' -o '$(call SHESCAPE,$@)'
 
