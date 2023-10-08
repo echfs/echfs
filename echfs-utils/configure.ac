@@ -1,13 +1,12 @@
 AC_INIT([echfs-utils], [m4_esyscmd([./version.sh])], [https://github.com/echfs/echfs/issues], [echfs-utils])
 
 AC_PREREQ([2.69])
+
 AC_CONFIG_AUX_DIR([build-aux])
 
 SRCDIR="$(cd "$srcdir" && pwd -P)"
-BUILDDIR="$(pwd -P)"
 
 AC_SUBST([SRCDIR])
-AC_SUBST([BUILDDIR])
 
 AC_DEFUN([PROG_ABSPATH], [
     case "$$1" in
@@ -64,5 +63,6 @@ AC_CHECK_HEADERS([stdio.h stdint.h stdlib.h string.h getopt.h inttypes.h sys/typ
     [], [AC_MSG_ERROR([required header not found])])
 
 AC_PREFIX_DEFAULT([/usr/local])
+
 AC_CONFIG_FILES([GNUmakefile])
 AC_OUTPUT
