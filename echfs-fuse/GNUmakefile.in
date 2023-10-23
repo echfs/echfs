@@ -22,12 +22,15 @@ override DEFAULT_CC := @CC@
 $(eval $(call DEFAULT_VAR,CC,$(DEFAULT_CC)))
 override DEFAULT_CFLAGS := @CFLAGS@
 $(eval $(call DEFAULT_VAR,CFLAGS,$(DEFAULT_CFLAGS)))
+override PKGCONF_CFLAGS := @PKGCONF_CFLAGS@
 override DEFAULT_CPPFLAGS := @CPPFLAGS@
 $(eval $(call DEFAULT_VAR,CPPFLAGS,$(DEFAULT_CPPFLAGS)))
+override PKGCONF_CPPFLAGS := @PKGCONF_CPPFLAGS@
 override DEFAULT_LDFLAGS := @LDFLAGS@
 $(eval $(call DEFAULT_VAR,LDFLAGS,$(DEFAULT_LDFLAGS)))
 override DEFAULT_LIBS := @LIBS@
 $(eval $(call DEFAULT_VAR,LIBS,$(DEFAULT_LIBS)))
+override PKGCONF_LIBS := @PKGCONF_LIBS@
 override STRIP := @STRIP@
 override MKDIR_P := @MKDIR_P@
 override INSTALL := @INSTALL@
@@ -47,14 +50,20 @@ override CFLAGS += \
     -Wall \
     -Wextra \
     $(WERROR_FLAG) \
-    -std=gnu11
+    -std=gnu11 \
+    $(PKGCONF_CFLAGS)
 
 # Internal C preprocessor flags that should not be changed by the user.
 override CPPFLAGS := \
+    $(PKGCONF_CPPFLAGS) \
     -I'$(call SHESCAPE,$(SRCDIR))/src' \
     $(CPPFLAGS) \
     -MMD \
     -MP
+
+# Internal library flags that should not be changed by the user.
+override LIBS += \
+    $(PKGCONF_LIBS)
 
 # Use "find" to glob all *.c files in the tree and obtain the
 # object and header dependency file names.
@@ -109,7 +118,7 @@ dist:
 # Remove ALL generated files.
 .PHONY: maintainer-clean
 maintainer-clean: distclean
-	cd '$(call SHESCAPE,$(SRCDIR))' && rm -rf configure build-aux *'~' autom4te.cache
+	cd '$(call SHESCAPE,$(SRCDIR))' && rm -rf configure build-aux *'~' autom4te.cache aclocal.m4
 
 # Install files and executables to the final locations.
 .PHONY: install
