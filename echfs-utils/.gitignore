@@ -6,6 +6,7 @@
 /build
 /GNUmakefile
 /autom4te.cache
+/INSTALL
 /build-aux
 /config.log
 /config.status

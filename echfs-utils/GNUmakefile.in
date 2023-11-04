@@ -105,6 +105,7 @@ dist:
 	$(MKDIR_P) "$(PACKAGE_TARNAME)-$(PACKAGE_VERSION)"
 	cp -rp '$(call SHESCAPE,$(SRCDIR))'/.git "$(PACKAGE_TARNAME)-$(PACKAGE_VERSION)"/
 	cd "$(PACKAGE_TARNAME)-$(PACKAGE_VERSION)" && git checkout .
+	cd "$(PACKAGE_TARNAME)-$(PACKAGE_VERSION)" && git log --oneline --decorate > ChangeLog
 	cd "$(PACKAGE_TARNAME)-$(PACKAGE_VERSION)" && ./bootstrap
 	rm -rf "$(PACKAGE_TARNAME)-$(PACKAGE_VERSION)"/.git
 	rm -rf "$(PACKAGE_TARNAME)-$(PACKAGE_VERSION)"/.gitignore
@@ -118,7 +119,7 @@ dist:
 # Remove ALL generated files.
 .PHONY: maintainer-clean
 maintainer-clean: distclean
-	cd '$(call SHESCAPE,$(SRCDIR))' && rm -rf configure build-aux *'~' autom4te.cache aclocal.m4
+	cd '$(call SHESCAPE,$(SRCDIR))' && rm -rf configure INSTALL build-aux *'~' autom4te.cache aclocal.m4
 
 # Install files and executables to the final locations.
 .PHONY: install
