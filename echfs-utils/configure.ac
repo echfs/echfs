@@ -8,6 +8,8 @@ SRCDIR="$(cd "$srcdir" && pwd -P)"
 
 AC_SUBST([SRCDIR])
 
+AC_CANONICAL_HOST
+
 AC_DEFUN([PROG_ABSPATH], [
     case "$$1" in
         .*) $1="$(cd "$(dirname "$$1")" && pwd -P)/$(basename "$$1")" ;;
