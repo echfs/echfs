@@ -105,7 +105,6 @@ dist:
 	$(MKDIR_P) "$(PACKAGE_TARNAME)-$(PACKAGE_VERSION)"
 	cp -rp '$(call SHESCAPE,$(SRCDIR))'/.git "$(PACKAGE_TARNAME)-$(PACKAGE_VERSION)"/
 	cd "$(PACKAGE_TARNAME)-$(PACKAGE_VERSION)" && git checkout .
-	cd "$(PACKAGE_TARNAME)-$(PACKAGE_VERSION)" && git log --oneline --decorate > ChangeLog
 	cd "$(PACKAGE_TARNAME)-$(PACKAGE_VERSION)" && ./bootstrap
 	rm -rf "$(PACKAGE_TARNAME)-$(PACKAGE_VERSION)"/.git
 	rm -rf "$(PACKAGE_TARNAME)-$(PACKAGE_VERSION)"/.gitignore
